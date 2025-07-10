@@ -7,10 +7,19 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Clock, Cloud, MessageSquare, RefreshCw } from "lucide-react"
 
-// Enhanced heatmap data generation based on product characteristics
-const generateHeatmapData = (productId: string) => {
+// Static heatmap data that won't change - generated once per product
+const generateStaticHeatmapData = (productId: string) => {
   const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
   const hours = Array.from({ length: 24 }, (_, i) => i)
+
+  // Create a seed based on productId for consistent data
+  const seed = productId.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0)
+
+  // Simple seeded random function for consistent results
+  const seededRandom = (index: number) => {
+    const x = Math.sin(seed + index) * 10000
+    return x - Math.floor(x)
+  }
 
   const productPatterns: Record<string, { peaks: number[]; weekendBoost: number; weatherSensitive: boolean }> = {
     "milk-whole": { peaks: [7, 8, 18], weekendBoost: 1.2, weatherSensitive: false },
@@ -44,16 +53,17 @@ const generateHeatmapData = (productId: string) => {
 
     return hours.map((hour) => {
       let baseValue = 0.1
+      const randomIndex = dayIndex * 24 + hour
 
       // Apply peak hour multipliers
       if (pattern.peaks.includes(hour)) {
-        baseValue = 0.6 + Math.random() * 0.4 // High demand during peak hours
+        baseValue = 0.6 + seededRandom(randomIndex) * 0.4 // High demand during peak hours
       } else if (pattern.peaks.some((peak) => Math.abs(peak - hour) === 1)) {
-        baseValue = 0.3 + Math.random() * 0.3 // Medium demand around peak hours
+        baseValue = 0.3 + seededRandom(randomIndex + 100) * 0.3 // Medium demand around peak hours
       } else if (hour >= 22 || hour <= 5) {
-        baseValue = 0.05 + Math.random() * 0.1 // Very low demand during night
+        baseValue = 0.05 + seededRandom(randomIndex + 200) * 0.1 // Very low demand during night
       } else {
-        baseValue = 0.15 + Math.random() * 0.25 // Normal demand during other hours
+        baseValue = 0.15 + seededRandom(randomIndex + 300) * 0.25 // Normal demand during other hours
       }
 
       // Apply weekend boost
@@ -82,12 +92,22 @@ const generateHeatmapData = (productId: string) => {
         }
       }
 
-      // Add some randomness but keep it realistic
-      baseValue += (Math.random() - 0.5) * 0.1
+      // Add some consistent variation but keep it deterministic
+      baseValue += (seededRandom(randomIndex + 500) - 0.5) * 0.1
 
       return Math.max(0, Math.min(1, baseValue))
     })
   })
+}
+
+// Cache the heatmap data to prevent regeneration
+const heatmapCache: Record<string, number[][]> = {}
+
+const getHeatmapData = (productId: string) => {
+  if (!heatmapCache[productId]) {
+    heatmapCache[productId] = generateStaticHeatmapData(productId)
+  }
+  return heatmapCache[productId]
 }
 
 const getIntensityColor = (value: number) => {
@@ -110,7 +130,8 @@ export function ProductHeatmap({ productId }: { productId: string }) {
   const [selectedView, setSelectedView] = useState("weekly")
   const [hoveredCell, setHoveredCell] = useState<{ day: number; hour: number; value: number } | null>(null)
 
-  const heatmapData = generateHeatmapData(productId)
+  // Use cached/static heatmap data
+  const heatmapData = getHeatmapData(productId)
   const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
   const hours = Array.from({ length: 24 }, (_, i) => i)
 
@@ -195,7 +216,7 @@ export function ProductHeatmap({ productId }: { productId: string }) {
                         return (
                           <div
                             key={`${day}-${hour}`}
-                            className={`w-8 h-8 ${getIntensityColor(value)} border border-white cursor-pointer transition-all hover:scale-110 hover:z-10 relative`}
+                            className={`w-8 h-8 ${getIntensityColor(value)} border border-white cursor-pointer transition-transform hover:scale-110 hover:z-10 relative`}
                             onMouseEnter={() => setHoveredCell({ day: dayIndex, hour, value })}
                             onMouseLeave={() => setHoveredCell(null)}
                             title={`${day} ${hour}:00 - ${getIntensityLabel(value)} demand (${(value * 100).toFixed(0)}%)`}
