@@ -23,6 +23,11 @@ This tool is designed to reduce waste, eliminate stockouts, and optimize invento
 - 💾 **High Performance** with <50ms response time and optimized rendering
 
 ---
+## Screenshots
+<img width="1802" height="851" alt="image" src="https://github.com/user-attachments/assets/2f51a649-1c37-4891-958a-55b174fa7d34" />
+<img width="1637" height="871" alt="image" src="https://github.com/user-attachments/assets/f7926a7c-3fa1-4556-a36e-c394aacbe123" />
+<img width="1802" height="851" alt="image" src="https://github.com/user-attachments/assets/035f9f72-559a-4a56-b23e-88c1e0a5d836" />
+
 
 ## 🧰 Tech Stack
 
